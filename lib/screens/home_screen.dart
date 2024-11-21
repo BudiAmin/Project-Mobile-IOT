@@ -1,7 +1,9 @@
+import 'package:aplikasi_iot/models/sensor_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../themes/theme_model.dart';
 import 'detail_screen.dart';
+import '../services/mqtt_service.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -10,10 +12,39 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   bool _isCameraOn = false;
-  double _batteryStatus = 75.0;
-  String _motorStatus = 'Off';
-  double _distance = 10.0;
-  double _waterStatus = 50.0;
+  SensorData _sensorData = SensorData(
+    ultrasonicDistance: 0.0,
+    relayStatus: 'Off',
+    strobeStatus: 'Off',
+    rotatorStatus: 'Off',
+    batteryVoltage: 0.0,
+    speakerStatus: 'Off',
+  );
+
+  late MqttService mqttService;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Inisialisasi mqttService dengan callback onDataReceived
+    mqttService = MqttService(
+      onDataReceived: (SensorData sensorData) {
+        setState(() {
+          _sensorData = sensorData;
+        });
+      },
+    );
+
+    // Menghubungkan ke broker MQTT
+    mqttService.connect();
+  }
+
+  @override
+  void dispose() {
+    mqttService.disconnect();
+    super.dispose();
+  }
 
   void _toggleCamera() {
     setState(() {
@@ -84,32 +115,45 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             SizedBox(height: 16),
+            // Sensor Grid
             Wrap(
               spacing: 16.0,
               runSpacing: 16.0,
               children: [
                 InfoCard(
-                  title: 'Battery',
-                  value: '$_batteryStatus%',
-                  icon: Icons.battery_full,
+                  title: 'Ultrasonic Distance',
+                  value: '${_sensorData.ultrasonicDistance} cm',
+                  icon: Icons.radar,
                   isDark: themeProvider.isDark,
                 ),
                 InfoCard(
-                  title: 'Motor Status',
-                  value: _motorStatus,
-                  icon: Icons.motorcycle,
+                  title: 'Relay Status',
+                  value: _sensorData.relayStatus,
+                  icon: Icons.switch_right,
                   isDark: themeProvider.isDark,
                 ),
                 InfoCard(
-                  title: 'Distance',
-                  value: '$_distance cm',
-                  icon: Icons.square,
+                  title: 'Strobe Status',
+                  value: _sensorData.strobeStatus,
+                  icon: Icons.lightbulb_outline,
                   isDark: themeProvider.isDark,
                 ),
                 InfoCard(
-                  title: 'Water Status',
-                  value: '$_waterStatus%',
-                  icon: Icons.water,
+                  title: 'Rotator Status',
+                  value: _sensorData.rotatorStatus,
+                  icon: Icons.rotate_right,
+                  isDark: themeProvider.isDark,
+                ),
+                InfoCard(
+                  title: 'Battery Voltage',
+                  value: '${_sensorData.batteryVoltage} V',
+                  icon: Icons.battery_charging_full,
+                  isDark: themeProvider.isDark,
+                ),
+                InfoCard(
+                  title: 'Speaker Status',
+                  value: _sensorData.speakerStatus,
+                  icon: Icons.speaker,
                   isDark: themeProvider.isDark,
                 ),
               ],
@@ -118,7 +162,13 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
+        onPressed: () {
+          // Mengirim data yang sesuai dengan format Map<String, dynamic>
+          mqttService.publishMessage({
+            'message': 'Sensor Data Updated',
+            'timestamp': DateTime.now().toString(),
+          });
+        },
         backgroundColor: Colors.redAccent,
         child: Icon(Icons.add),
       ),
@@ -155,7 +205,7 @@ class InfoCard extends StatelessWidget {
         );
       },
       child: Container(
-        width: 160,
+        width: 140,
         child: Card(
           elevation: 6,
           shape: RoundedRectangleBorder(
@@ -163,33 +213,27 @@ class InfoCard extends StatelessWidget {
           ),
           color: isDark ? Colors.grey.shade800 : Colors.white,
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, size: 30, color: Colors.redAccent),
-                Divider(
-                  color: Colors.grey,
-                  thickness: 1,
-                  indent: 10,
-                  endIndent: 10,
-                ),
-                SizedBox(height: 8),
+                Icon(icon, size: 40, color: Colors.redAccent),
+                SizedBox(height: 10),
                 Text(
                   title,
+                  textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.black54,
+                    fontSize: 14,
+                    color: isDark ? Colors.white : Colors.black,
                   ),
                 ),
                 SizedBox(height: 8),
                 Text(
                   value,
                   style: TextStyle(
-                    fontSize: 22,
-                    color: Colors.redAccent,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.black,
                   ),
                 ),
               ],

@@ -1,25 +1,41 @@
 class SensorData {
-  final double distance;
-  final String direction;
-  final DateTime timestamp;
+  final double ultrasonicDistance;
+  final String relayStatus;
+  final String strobeStatus;
+  final String rotatorStatus;
+  final double batteryVoltage;
+  final String speakerStatus;
 
-  SensorData({required this.distance, required this.direction, required this.timestamp});
+  SensorData({
+    required this.ultrasonicDistance,
+    required this.relayStatus,
+    required this.strobeStatus,
+    required this.rotatorStatus,
+    required this.batteryVoltage,
+    required this.speakerStatus,
+  });
 
-  // Factory method untuk konversi dari JSON ke objek SensorData
+  // Fungsi untuk membuat objek SensorData dari JSON
   factory SensorData.fromJson(Map<String, dynamic> json) {
     return SensorData(
-      distance: json['distance'],
-      direction: json['direction'],
-      timestamp: DateTime.parse(json['timestamp']),
+      ultrasonicDistance: json['ultrasonic_distance'].toDouble(),
+      relayStatus: json['relay_status'],
+      strobeStatus: json['strobe_status'],
+      rotatorStatus: json['rotator_status'],
+      batteryVoltage: json['battery_voltage'].toDouble(),
+      speakerStatus: json['speaker_status'],
     );
   }
 
-  // Metode untuk konversi objek SensorData ke JSON
+  // Fungsi untuk mengubah objek SensorData menjadi JSON
   Map<String, dynamic> toJson() {
     return {
-      'distance': distance,
-      'direction': direction,
-      'timestamp': timestamp.toIso8601String(),
+      'ultrasonic_distance': ultrasonicDistance,
+      'relay_status': relayStatus,
+      'strobe_status': strobeStatus,
+      'rotator_status': rotatorStatus,
+      'battery_voltage': batteryVoltage,
+      'speaker_status': speakerStatus,
     };
   }
 }
