@@ -23,57 +23,51 @@ class DetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(title),
-        backgroundColor: Colors.redAccent,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, size: 50, color: Colors.redAccent),
-                SizedBox(width: 10),
-                Text(
-                  value,
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            SizedBox(height: 16),
-            Text(
-              'Grafik Status',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 16),
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.black26),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: SfCartesianChart(
-                  primaryXAxis: CategoryAxis(),
-                  title: ChartTitle(text: 'Data Status'),
-                  legend: Legend(isVisible: false),
-                  tooltipBehavior: TooltipBehavior(enable: true),
-                  series: <LineSeries<_ChartData, int>>[
-                    LineSeries<_ChartData, int>(
-                      dataSource: chartData,
-                      xValueMapper: (_ChartData data, _) => data.x,
-                      yValueMapper: (_ChartData data, _) => data.y,
-                      color: Colors.redAccent,
-                      markerSettings: MarkerSettings(isVisible: true),
-                    ),
-                  ],
-                ),
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 50, color: Colors.redAccent),
+              SizedBox(width: 10),
+              Text(
+                value,
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          SizedBox(height: 16),
+          Text(
+            'Grafik Status',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 16),
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.black26),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: SfCartesianChart(
+                primaryXAxis: CategoryAxis(),
+                title: ChartTitle(text: 'Data Status'),
+                legend: Legend(isVisible: false),
+                tooltipBehavior: TooltipBehavior(enable: true),
+                series: <LineSeries<_ChartData, int>>[
+                  LineSeries<_ChartData, int>(
+                    dataSource: chartData,
+                    xValueMapper: (_ChartData data, _) => data.x,
+                    yValueMapper: (_ChartData data, _) => data.y,
+                    color: Colors.redAccent,
+                    markerSettings: MarkerSettings(isVisible: true),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
