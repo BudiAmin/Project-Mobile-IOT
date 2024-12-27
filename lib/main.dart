@@ -5,6 +5,7 @@ import 'themes/app_theme.dart'; // Tambahkan untuk import tema yang telah Anda b
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/home_screen.dart'; // Import HomeScreen
+import 'screens/splash_screen.dart'; // Import SplashScreen
 
 void main() {
   runApp(MyApp());
@@ -24,7 +25,7 @@ class MyApp extends StatelessWidget {
             themeMode: themeModel.isDark
                 ? ThemeMode.dark
                 : ThemeMode.light, // Menggunakan tema sesuai pilihan
-            home: LoginScreen(), // Mulai dari halaman Login
+            home: SplashScreen(), // Mulai dari halaman SplashScreen
             routes: {
               '/login_screen': (context) => LoginScreen(),
               '/register_screen': (context) => RegisterScreen(),

@@ -5,11 +5,11 @@ import 'dart:convert';
 
 class MqttService {
   late mqtt.MqttServerClient client;
-  final String broker = 'test.mosquitto.org'; // Broker MQTT
+  final String broker = 'broker.hivemq.com'; // Broker MQTT
   final int port = 1883; // Port koneksi MQTT tanpa TLS
-  final String topic = 'sensor/ff'; // Topik MQTT
+  final String topic = 'mobil/ff'; // Topik MQTT
   final String clientId =
-      'HydroponicTestClient_${DateTime.now().millisecondsSinceEpoch}';
+      'Mobil_${DateTime.now().millisecondsSinceEpoch}';
   final Function(SensorData) onDataReceived;
 
   MqttService({required this.onDataReceived});

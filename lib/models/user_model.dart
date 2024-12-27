@@ -1,15 +1,15 @@
 class User {
   final int? idUser;
-  final String email;
+  final String username;
   final String password;
 
-  User({this.idUser, required this.email, required this.password});
+  User({this.idUser, required this.username, required this.password});
 
   // Metode untuk mengonversi dari JSON
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
       idUser: json['id_user'],
-      email: json['email'],
+      username: json['username'],
       password: json['password'],
     );
   }
@@ -18,7 +18,7 @@ class User {
   Map<String, dynamic> toJson() {
     return {
       'id_user': idUser,
-      'email': email,
+      'username': username,
       'password': password,
     };
   }

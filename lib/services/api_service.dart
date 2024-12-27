@@ -1,72 +1,97 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:aplikasi_iot/models/battery_model.dart';
+// import 'package:aplikasi_iot/models/battery_model.dart';
+import 'package:aplikasi_iot/models/sensor_model.dart'; // Import model untuk data sensor
 
 class ApiService {
-  // Ganti localhost dengan 10.0.2.2 agar emulator Android bisa terhubung ke server di komputer lokal
-  static const String apiUrl = 'http://10.0.2.2:3001/api';
+  static const String baseUrl =
+      "https://dd59-2001-448a-3021-6e94-440-359d-2c6d-3f06.ngrok-free.app"; // Sesuaikan dengan URL backend Anda
 
-  // Method untuk login
-  static Future<bool> login(String email, String password) async {
+  // Login API
+  static Future<bool> login(String username, String password) async {
+    final url = Uri.parse("$baseUrl/login");
     try {
       final response = await http.post(
-        Uri.parse('$apiUrl/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email, 'password': password}),
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"username": username, "password": password}),
+      );
+
+      if (response.statusCode == 200) {
+        return true; // Login berhasil
+      } else {
+        final error = jsonDecode(response.body);
+        throw Exception(error["error"] ?? "Login failed");
+      }
+    } catch (e) {
+      throw Exception("Error during login: $e");
+    }
+  }
+
+  // Register API
+  static Future<bool> register(String username, String password) async {
+    final url = Uri.parse("$baseUrl/register");
+    try {
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"username": username, "password": password}),
+      );
+
+      if (response.statusCode == 201) {
+        return true; // Registrasi berhasil
+      } else {
+        final error = jsonDecode(response.body);
+        throw Exception(error["error"] ?? "Registration failed");
+      }
+    } catch (e) {
+      throw Exception("Error during registration: $e");
+    }
+  }
+
+  // Mengirim data sensor
+  static Future<bool> postSensorData(Map<String, dynamic> sensorData) async {
+    final url = Uri.parse("$baseUrl/sensor_data");
+    try {
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(sensorData),
+      );
+
+      if (response.statusCode == 201) {
+        return true; // Data sensor berhasil dikirim
+      } else {
+        final error = jsonDecode(response.body);
+        throw Exception(error["error"] ?? "Failed to send sensor data");
+      }
+    } catch (e) {
+      throw Exception("Error during sending sensor data: $e");
+    }
+  }
+
+  // Mengambil data sensor (GET)
+  static Future<List<SensorData>> getSensorData() async {
+    final url = Uri.parse("$baseUrl/sensor_data");
+    try {
+      final response = await http.get(
+        url,
+        headers: {"Content-Type": "application/json"},
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        print('Login successful: ${data['message']}');
-        return true;
+        // Mengonversi data JSON menjadi List<SensorData>
+        List<SensorData> sensorDataList = (data['sensor_data'] as List)
+            .map((sensor) => SensorData.fromJson(sensor))
+            .toList();
+        return sensorDataList;
       } else {
-        print('Login failed: ${response.body}');
-        throw Exception('Login failed: ${response.body}');
+        final error = jsonDecode(response.body);
+        throw Exception(error["error"] ?? "Failed to fetch sensor data");
       }
     } catch (e) {
-      print('Error during login: $e');
-      throw Exception('Error during login');
+      throw Exception("Error fetching sensor data: $e");
     }
   }
-
-  // Method untuk registrasi
-  static Future<bool> register(String email, String password) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$apiUrl/register'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email, 'password': password}),
-      );
-
-      if (response.statusCode == 200) {
-        return true;
-      } else {
-        print('Registration failed: ${response.body}');
-        throw Exception('Registration failed: ${response.body}');
-      }
-    } catch (e) {
-      print('Error during registration: $e');
-      throw Exception('Error during registration');
-    }
-  }
-
-  // Method untuk mendapatkan status baterai
-  static Future<BatteryStatus> getBatteryStatus() async {
-    try {
-      final response = await http.get(Uri.parse('$apiUrl/battery'));
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return BatteryStatus.fromJson(data);
-      } else {
-        print('Failed to fetch battery status: ${response.body}');
-        throw Exception('Failed to fetch battery status');
-      }
-    } catch (e) {
-      print('Error during fetching battery status: $e');
-      throw Exception('Error during fetching battery status');
-    }
-  }
-
-  // Tambahkan method lain jika diperlukan
 }

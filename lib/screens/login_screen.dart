@@ -10,26 +10,16 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
 
-  bool _isValidEmail(String email) {
-    final RegExp regex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
-    return regex.hasMatch(email);
-  }
-
   void _login() async {
-    String email = _emailController.text.trim();
+    String username = _usernameController.text.trim();
     String password = _passwordController.text.trim();
 
-    if (email.isEmpty || password.isEmpty) {
-      Fluttertoast.showToast(msg: "Email and Password cannot be empty");
-      return;
-    }
-
-    if (!_isValidEmail(email)) {
-      Fluttertoast.showToast(msg: "Invalid email format");
+    if (username.isEmpty || password.isEmpty) {
+      Fluttertoast.showToast(msg: "Username and Password cannot be empty");
       return;
     }
 
@@ -38,13 +28,13 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      bool success = await ApiService.login(email, password);
+      bool success = await ApiService.login(username, password);
 
       if (success) {
         Fluttertoast.showToast(msg: "Login successful");
         Navigator.pushReplacementNamed(context, '/home_screen');
       } else {
-        Fluttertoast.showToast(msg: "Invalid email or password");
+        Fluttertoast.showToast(msg: "Invalid username or password");
       }
     } catch (error) {
       Fluttertoast.showToast(msg: error.toString());
@@ -125,12 +115,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: TextField(
-                    controller: _emailController,
+                    controller: _usernameController,
                     decoration: InputDecoration(
                       contentPadding:
                           EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                       border: InputBorder.none,
-                      hintText: "Email",
+                      hintText: "Username",
                       hintStyle: TextStyle(
                         color: themeProvider.isDark
                             ? Colors.white54
@@ -171,7 +161,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  color: Colors.blue,
+                  color: Color(0xFF053149), // Menggunakan warna kDarkBlueColor
                   child: Center(
                     child: _isLoading
                         ? CircularProgressIndicator(
@@ -194,9 +184,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Text(
                     "Belum punya akun? Daftar disini",
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: themeProvider.isDark
-                              ? Colors.white
-                              : Colors.black,
+                          color: Color(0xFF053149),
                         ),
                   ),
                 ),

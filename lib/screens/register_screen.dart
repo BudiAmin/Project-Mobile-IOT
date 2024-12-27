@@ -4,32 +4,24 @@ import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../themes/theme_model.dart';
 
+const kDarkBlueColor = Color(0xFF053149);
+
 class RegisterScreen extends StatefulWidget {
   @override
   _RegisterScreenState createState() => _RegisterScreenState();
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final _emailController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
 
-  bool _isValidEmail(String email) {
-    final RegExp regex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
-    return regex.hasMatch(email);
-  }
-
   void _register() async {
-    String email = _emailController.text.trim();
+    String username = _usernameController.text.trim();
     String password = _passwordController.text.trim();
 
-    if (email.isEmpty || password.isEmpty) {
-      Fluttertoast.showToast(msg: "Email and Password cannot be empty");
-      return;
-    }
-
-    if (!_isValidEmail(email)) {
-      Fluttertoast.showToast(msg: "Invalid email format");
+    if (username.isEmpty || password.isEmpty) {
+      Fluttertoast.showToast(msg: "Username and Password cannot be empty");
       return;
     }
 
@@ -38,7 +30,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     try {
-      bool success = await ApiService.register(email, password);
+      bool success = await ApiService.register(username, password);
 
       if (success) {
         Fluttertoast.showToast(msg: "Registration successful");
@@ -112,9 +104,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 SizedBox(height: 10),
                 Icon(
-                  const IconData(0xe289,
-                      fontFamily:
-                          'MaterialIcons'), // Menggunakan ikon fire hydrant
+                  const IconData(0xe289, fontFamily: 'MaterialIcons'),
                   size: size.width * 0.2,
                   color: themeProvider.isDark ? Colors.white : Colors.black,
                 ),
@@ -127,12 +117,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: TextField(
-                    controller: _emailController,
+                    controller: _usernameController,
                     decoration: InputDecoration(
                       contentPadding:
                           EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                       border: InputBorder.none,
-                      hintText: "Email",
+                      hintText: "Username",
                       hintStyle: TextStyle(
                         color: themeProvider.isDark
                             ? Colors.white54
@@ -173,7 +163,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  color: Colors.blue,
+                  color: kDarkBlueColor,
                   child: Center(
                     child: _isLoading
                         ? CircularProgressIndicator(

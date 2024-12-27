@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_webrtc/flutter_webrtc.dart';
-import 'package:permission_handler/permission_handler.dart'; // Import Permission Handler
+import 'package:permission_handler/permission_handler.dart';
+import 'package:curved_navigation_bar/curved_navigation_bar.dart';
+import 'package:camera/camera.dart';
+import 'package:video_player/video_player.dart';
 import '../themes/theme_model.dart';
 import '../services/mqtt_service.dart';
-import '../models/sensor_model.dart'; // Import model SensorData
-import 'detail_screen.dart'; // Import DetailScreen
+import '../models/sensor_model.dart';
+import 'detail_screen.dart';
+import 'history_screen.dart';
+import 'team_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -14,61 +18,150 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   bool _isCameraOn = false;
-  RTCVideoRenderer _cameraRenderer = RTCVideoRenderer();
+  late CameraController _cameraController;
+  late List<CameraDescription> _cameras;
+  late CameraDescription _selectedCamera;
+  late VideoPlayerController _ipCameraController;
+  bool _isIpCameraOn = false;
+
   SensorData _sensorData = SensorData(
-    ultrasonicDistance: 0.0,
-    relayStatus: 'Off',
-    strobeStatus: 'Off',
-    rotatorStatus: 'Off',
+    distance: 0.0,
+    strobe: 'Off',
     batteryVoltage: 0.0,
-    speakerStatus: 'Off',
+    speaker: 'Off',
+    pompa: 'Off',
   );
 
   late MqttService mqttService;
 
+  int _selectedIndex = 0;
+  late PageController _pageController;
+
   @override
   void initState() {
     super.initState();
-
-    // Inisialisasi kamera renderer
-    _cameraRenderer.initialize();
-
-    // Inisialisasi MQTT Service
     mqttService = MqttService(
       onDataReceived: (SensorData sensorData) {
-        setState(() {
-          _sensorData = sensorData;
-        });
+        if (mounted) {
+          setState(() {
+            _sensorData = sensorData;
+          });
+        }
       },
     );
 
-    // Menghubungkan ke broker MQTT
     mqttService.connect();
-
-    // Meminta izin kamera
     _requestCameraPermission();
+    _initializeCameras();
+
+    _pageController = PageController(initialPage: _selectedIndex);
   }
 
   @override
   void dispose() {
-    // Membersihkan resource
-    _cameraRenderer.dispose();
-    mqttService.disconnect();
+    if (_isCameraOn) _cameraController.dispose();
+    if (_isIpCameraOn) _ipCameraController.dispose();
+    _pageController.dispose();
+    mqttService.disconnect(); // Disconnect MQTT service properly
     super.dispose();
   }
 
   Future<void> _requestCameraPermission() async {
-    // Memeriksa izin kamera
     PermissionStatus cameraStatus = await Permission.camera.status;
 
     if (!cameraStatus.isGranted) {
-      // Jika izin belum diberikan, minta izin
       PermissionStatus status = await Permission.camera.request();
-      if (!status.isGranted) {
+      if (!status.isGranted && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Camera permission is required!')),
+          SnackBar(
+            content: Text(
+              'Camera permission is required!',
+              style: TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
+    }
+  }
+
+  Future<void> _initializeCameras() async {
+    try {
+      _cameras = await availableCameras();
+      if (_cameras.isNotEmpty) {
+        _selectedCamera = _cameras.first;
+      }
+    } catch (e) {
+      if (mounted) {
+        print('Failed to get available cameras: $e');
+      }
+    }
+  }
+
+  Future<void> _startCamera(CameraDescription cameraDescription) async {
+    _cameraController = CameraController(
+      cameraDescription,
+      ResolutionPreset.medium,
+    );
+
+    try {
+      await _cameraController.initialize();
+      if (mounted) {
+        setState(() {
+          _isCameraOn = true;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to initialize camera: $e',
+              style: TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _startIpCamera(String url) async {
+    _ipCameraController = VideoPlayerController.network(url)
+      ..initialize().then((_) {
+        if (mounted) {
+          setState(() {
+            _isIpCameraOn = true;
+            _ipCameraController.play();
+          });
+        }
+      }).catchError((e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Failed to load IP Camera: $e',
+                style: TextStyle(color: Colors.white),
+              ),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
+      });
+  }
+
+  Future<void> _startUsbCamera() async {
+    // Add your USB camera initialization code here
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'USB Camera feature is not implemented yet.',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
     }
   }
 
@@ -77,103 +170,48 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _isCameraOn = false;
       });
-      _cameraRenderer.srcObject = null;
+      await _cameraController.dispose();
     } else {
-      await _selectCamera();
+      await _startCamera(_selectedCamera);
     }
-  }
-
-  Future<void> _selectCamera() async {
-    final devices = await navigator.mediaDevices.enumerateDevices();
-    final videoDevices =
-        devices.where((device) => device.kind == 'videoinput').toList();
-
-    if (videoDevices.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No cameras detected!')),
-      );
-      return;
-    }
-
-    String? selectedDeviceId;
-
-    await showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Pilih Kamera'),
-          content: StatefulBuilder(
-            builder: (context, setState) {
-              return DropdownButton<String>(
-                isExpanded: true,
-                value: selectedDeviceId,
-                hint: Text('Pilih kamera...'),
-                items: videoDevices.map((device) {
-                  return DropdownMenuItem<String>(
-                    value: device.deviceId,
-                    child: Text(device.label.isNotEmpty
-                        ? device.label
-                        : 'Camera ${videoDevices.indexOf(device) + 1}'),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    selectedDeviceId = value;
-                  });
-                },
-              );
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Batal'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(selectedDeviceId);
-              },
-              child: Text('OK'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (selectedDeviceId != null) {
-      await _initializeCamera(selectedDeviceId!);
-      setState(() {
-        _isCameraOn = true;
-      });
-    }
-  }
-
-  Future<void> _initializeCamera(String deviceId) async {
-    final constraints = {
-      'audio': false,
-      'video': {
-        'deviceId': deviceId,
-      },
-    };
-
-    final stream = await navigator.mediaDevices.getUserMedia(constraints);
-    _cameraRenderer.srcObject = stream;
   }
 
   Widget _buildCameraWidget() {
     return Container(
       height: 200,
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.redAccent),
+        border: Border.all(color: Colors.redAccent, width: 2),
         borderRadius: BorderRadius.circular(15),
       ),
-      child: RTCVideoView(
-        _cameraRenderer,
-        mirror: true,
-      ),
+      child: _isCameraOn
+          ? CameraPreview(_cameraController)
+          : _isIpCameraOn
+              ? VideoPlayer(_ipCameraController)
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.camera_alt, size: 50, color: Colors.redAccent),
+                    SizedBox(width: 10),
+                    Text(
+                      '[Camera OFF]',
+                      style: TextStyle(fontSize: 22, color: Colors.redAccent),
+                    ),
+                  ],
+                ),
     );
+  }
+
+  void _onItemTapped(int index) {
+    if (mounted) {
+      setState(() {
+        _selectedIndex = index;
+      });
+      _pageController.animateToPage(
+        index,
+        duration: Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
   }
 
   @override
@@ -181,113 +219,150 @@ class _HomeScreenState extends State<HomeScreen> {
     final themeProvider = Provider.of<ThemeModel>(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Dashboard Pemadam Kebakaran',
-          style: TextStyle(
-            color: themeProvider.isDark ? Colors.white : Colors.black,
-          ),
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.redAccent,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.of(context).pushReplacementNamed('/login_screen');
-          },
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // Kotak kamera yang tetap pada tempatnya
-            GestureDetector(
-              onTap: _toggleCamera,
-              child: Container(
-                height: 200,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(15),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 8,
-                      offset: Offset(0, 4),
+      appBar: _selectedIndex == 0
+          ? AppBar(
+              title: Text(
+                'Dashboard FIREFIGHTER',
+                style: TextStyle(
+                  color: themeProvider.isDark ? Colors.white : Colors.black,
+                ),
+              ),
+              centerTitle: true,
+              backgroundColor: Colors.redAccent,
+              leading: IconButton(
+                icon: Icon(Icons.arrow_back),
+                onPressed: () {
+                  Navigator.of(context).pushReplacementNamed('/login_screen');
+                },
+              ),
+              actions: [
+                PopupMenuButton<String>(
+                  onSelected: (String choice) async {
+                    if (choice == 'Front Camera') {
+                      final frontCamera = _cameras.firstWhere(
+                        (camera) =>
+                            camera.lensDirection == CameraLensDirection.front,
+                        orElse: () => _cameras.first,
+                      );
+                      await _startCamera(frontCamera);
+                    } else if (choice == 'Rear Camera') {
+                      final rearCamera = _cameras.firstWhere(
+                        (camera) =>
+                            camera.lensDirection == CameraLensDirection.back,
+                        orElse: () => _cameras.first,
+                      );
+                      await _startCamera(rearCamera);
+                    } else if (choice == 'IP Camera') {
+                      await _startIpCamera('http://192.168.1.100:8080/video');
+                    } else if (choice == 'USB Camera') {
+                      await _startUsbCamera();
+                    }
+                  },
+                  itemBuilder: (context) {
+                    return [
+                      PopupMenuItem(
+                        value: 'Front Camera',
+                        child: Text('Front Camera'),
+                      ),
+                      PopupMenuItem(
+                        value: 'Rear Camera',
+                        child: Text('Back Camera'),
+                      ),
+                      PopupMenuItem(
+                        value: 'IP Camera',
+                        child: Text('IP Camera'),
+                      ),
+                      PopupMenuItem(
+                        value: 'USB Camera',
+                        child: Text('USB Camera'),
+                      ),
+                    ];
+                  },
+                  icon: Icon(Icons.switch_camera, color: Colors.white),
+                ),
+              ],
+            )
+          : null,
+      body: PageView(
+        controller: _pageController,
+        onPageChanged: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        children: [
+          SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                GestureDetector(
+                  onTap: _toggleCamera,
+                  child: Container(
+                    height: 200,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(15),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 8,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: _buildCameraWidget(),
+                  ),
+                ),
+                SizedBox(height: 16),
+                Wrap(
+                  spacing: 16.0,
+                  runSpacing: 16.0,
+                  children: [
+                    InfoCard(
+                      title: 'Ultrasonic Distance',
+                      value: '${_sensorData.distance} cm',
+                      icon: Icons.radar,
+                      isDark: themeProvider.isDark,
+                    ),
+                    InfoCard(
+                      title: 'Strobe Status',
+                      value: _sensorData.strobe,
+                      icon: Icons.lightbulb_outline,
+                      isDark: themeProvider.isDark,
+                    ),
+                    InfoCard(
+                      title: 'Battery Voltage',
+                      value: '${_sensorData.batteryVoltage} V',
+                      icon: Icons.battery_charging_full,
+                      isDark: themeProvider.isDark,
+                    ),
+                    InfoCard(
+                      title: 'Speaker Status',
+                      value: _sensorData.speaker,
+                      icon: Icons.speaker,
+                      isDark: themeProvider.isDark,
+                    ),
+                    // InfoCard(
+                    //   title: 'Fire Status',
+                    //   value: _sensorData.fireStatus,
+                    //   icon: Icons.warning,
+                    //   isDark: themeProvider.isDark,
+                    // ),
+                    InfoCard(
+                      title: 'Pompa Status',
+                      value: _sensorData.pompa,
+                      icon: Icons.water,
+                      isDark: themeProvider.isDark,
                     ),
                   ],
                 ),
-                child: _isCameraOn
-                    ? _buildCameraWidget()
-                    : Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.camera_alt,
-                            size: 50,
-                            color: Colors.redAccent,
-                          ),
-                          SizedBox(width: 10),
-                          Text(
-                            '[Camera OFF]',
-                            style: TextStyle(
-                              fontSize: 22,
-                              color: themeProvider.isDark
-                                  ? Colors.white
-                                  : Colors.black,
-                            ),
-                          ),
-                        ],
-                      ),
-              ),
-            ),
-            SizedBox(height: 16),
-            // Grid di bawah kamera, tidak menutupi kamera
-            Wrap(
-              spacing: 16.0,
-              runSpacing: 16.0,
-              children: [
-                InfoCard(
-                  title: 'Ultrasonic Distance',
-                  value: '${_sensorData.ultrasonicDistance} cm',
-                  icon: Icons.radar,
-                  isDark: themeProvider.isDark,
-                ),
-                InfoCard(
-                  title: 'Relay Status',
-                  value: _sensorData.relayStatus,
-                  icon: Icons.switch_right,
-                  isDark: themeProvider.isDark,
-                ),
-                InfoCard(
-                  title: 'Strobe Status',
-                  value: _sensorData.strobeStatus,
-                  icon: Icons.lightbulb_outline,
-                  isDark: themeProvider.isDark,
-                ),
-                InfoCard(
-                  title: 'Rotator Status',
-                  value: _sensorData.rotatorStatus,
-                  icon: Icons.rotate_right,
-                  isDark: themeProvider.isDark,
-                ),
-                InfoCard(
-                  title: 'Battery Voltage',
-                  value: '${_sensorData.batteryVoltage} V',
-                  icon: Icons.battery_charging_full,
-                  isDark: themeProvider.isDark,
-                ),
-                InfoCard(
-                  title: 'Speaker Status',
-                  value: _sensorData.speakerStatus,
-                  icon: Icons.speaker,
-                  isDark: themeProvider.isDark,
-                ),
               ],
             ),
-          ],
-        ),
+          ),
+          HistoryScreen(), // Assuming this is a static screen
+          TeamScreen(), // Assuming this is a static screen
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -298,6 +373,21 @@ class _HomeScreenState extends State<HomeScreen> {
         },
         backgroundColor: Colors.redAccent,
         child: Icon(Icons.add),
+      ),
+      bottomNavigationBar: CurvedNavigationBar(
+        index: _selectedIndex,
+        height: 60.0,
+        color: Colors.redAccent,
+        backgroundColor: Colors.white,
+        buttonBackgroundColor: Colors.redAccent,
+        animationDuration: Duration(milliseconds: 300),
+        animationCurve: Curves.easeInOut,
+        items: <Widget>[
+          Icon(Icons.home, size: 30, color: Colors.white),
+          Icon(Icons.graphic_eq, size: 30, color: Colors.white),
+          Icon(Icons.group, size: 30, color: Colors.white),
+        ],
+        onTap: _onItemTapped,
       ),
     );
   }
@@ -322,11 +412,11 @@ class InfoCard extends StatelessWidget {
       onTap: () {
         showModalBottomSheet(
           context: context,
-          isScrollControlled: true, // Untuk memungkinkan tinggi yang fleksibel
+          isScrollControlled: true,
           backgroundColor: Colors.transparent,
           builder: (context) {
             return Container(
-              height: MediaQuery.of(context).size.height * 0.6, // 60% layar
+              height: MediaQuery.of(context).size.height * 0.6,
               decoration: BoxDecoration(
                 color: isDark ? Colors.grey[900] : Colors.white,
                 borderRadius: BorderRadius.vertical(

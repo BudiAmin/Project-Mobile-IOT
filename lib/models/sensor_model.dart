@@ -1,41 +1,48 @@
+/// Model untuk data sensor.
 class SensorData {
-  final double ultrasonicDistance;
-  final String relayStatus;
-  final String strobeStatus;
-  final String rotatorStatus;
-  final double batteryVoltage;
-  final String speakerStatus;
+  /// Jarak yang terdeteksi oleh sensor.
+  final double distance;
 
+  /// Status lampu strobe.
+  final String strobe;
+
+  /// Tegangan baterai.
+  final double batteryVoltage;
+
+  /// Status speaker.
+  final String speaker;
+
+  /// Status pompa.
+  final String pompa;
+
+  /// Konstruktor utama dengan parameter wajib.
   SensorData({
-    required this.ultrasonicDistance,
-    required this.relayStatus,
-    required this.strobeStatus,
-    required this.rotatorStatus,
+    required this.distance,
+    required this.strobe,
     required this.batteryVoltage,
-    required this.speakerStatus,
+    required this.speaker,
+    required this.pompa,
   });
 
-  // Fungsi untuk membuat objek SensorData dari JSON
+  /// Factory constructor untuk parsing dari JSON.
   factory SensorData.fromJson(Map<String, dynamic> json) {
     return SensorData(
-      ultrasonicDistance: json['ultrasonic_distance'].toDouble(),
-      relayStatus: json['relay_status'],
-      strobeStatus: json['strobe_status'],
-      rotatorStatus: json['rotator_status'],
-      batteryVoltage: json['battery_voltage'].toDouble(),
-      speakerStatus: json['speaker_status'],
+      distance: (json['distance'] as num?)?.toDouble() ?? 0.0,
+      strobe: json['strobe']?.toString() ?? 'OFF',
+      batteryVoltage: (json['battery_voltage'] as num?)?.toDouble() ?? 0.0,
+      speaker: json['speaker']?.toString() ?? 'OFF',
+      pompa: json['pompa']?.toString() ?? 'OFF',
     );
   }
 
-  // Fungsi untuk mengubah objek SensorData menjadi JSON
+  /// Mengonversi objek SensorData menjadi format JSON.
   Map<String, dynamic> toJson() {
     return {
-      'ultrasonic_distance': ultrasonicDistance,
-      'relay_status': relayStatus,
-      'strobe_status': strobeStatus,
-      'rotator_status': rotatorStatus,
+      'distance': distance,
+      'strobe': strobe,
       'battery_voltage': batteryVoltage,
-      'speaker_status': speakerStatus,
+      'speaker': speaker,
+      'pompa': pompa,
     };
   }
 }
