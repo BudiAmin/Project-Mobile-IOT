@@ -26,10 +26,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   SensorData _sensorData = SensorData(
     distance: 0.0,
-    strobe: 'Off',
-    batteryVoltage: 0.0,
+    strobo: 'Off',
+    batre: 0,
     speaker: 'Off',
     pompa: 'Off',
+    fire: "Unknown",
   );
 
   late MqttService mqttService;
@@ -327,13 +328,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     InfoCard(
                       title: 'Strobe Status',
-                      value: _sensorData.strobe,
+                      value: _sensorData.strobo,
                       icon: Icons.lightbulb_outline,
                       isDark: themeProvider.isDark,
                     ),
                     InfoCard(
                       title: 'Battery Voltage',
-                      value: '${_sensorData.batteryVoltage} V',
+                      value: '${_sensorData.batre} V',
                       icon: Icons.battery_charging_full,
                       isDark: themeProvider.isDark,
                     ),
@@ -343,12 +344,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       icon: Icons.speaker,
                       isDark: themeProvider.isDark,
                     ),
-                    // InfoCard(
-                    //   title: 'Fire Status',
-                    //   value: _sensorData.fireStatus,
-                    //   icon: Icons.warning,
-                    //   isDark: themeProvider.isDark,
-                    // ),
+                    InfoCard(
+                      title: 'Fire Status',
+                      value: _sensorData.fire,
+                      icon: Icons.warning,
+                      isDark: themeProvider.isDark,
+                    ),
                     InfoCard(
                       title: 'Pompa Status',
                       value: _sensorData.pompa,

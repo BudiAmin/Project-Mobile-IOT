@@ -1,16 +1,18 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:aplikasi_iot/models/sensor_model.dart'; // Model SensorData
+import 'package:aplikasi_iot/models/sensor_model.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
-import 'package:aplikasi_iot/services/api_service.dart'; // API Service
+import 'package:aplikasi_iot/services/mqtt_service.dart';
 
 class DetailScreen extends StatefulWidget {
   final String title;
   final IconData icon;
+  final String value;
 
+  // Konstruktor
   DetailScreen({
     required this.title,
-    required this.icon, required String value,
+    required this.icon,
+    required this.value,
   });
 
   @override
@@ -19,76 +21,60 @@ class DetailScreen extends StatefulWidget {
 
 class _DetailScreenState extends State<DetailScreen> {
   late List<_ChartData> chartData;
-  late Timer timer;
   int time = 0;
+  late MqttService mqttService;
 
   @override
   void initState() {
     super.initState();
+
     // Inisialisasi data grafik
     chartData = [for (int i = 0; i < 10; i++) _ChartData(i, 0.0)];
 
-    // Timer untuk memperbarui data setiap 1 detik
-    timer = Timer.periodic(Duration(seconds: 1), (Timer t) {
-      setState(() {
-        time++;
-        _updateChartData();
-      });
-    });
+    // Inisialisasi MQTT
+    mqttService = MqttService(onDataReceived: _onDataReceived);
+    mqttService.connect();
   }
 
   @override
   void dispose() {
-    timer.cancel();
+    mqttService.disconnect();
     super.dispose();
   }
 
-  // Fungsi untuk memperbarui data grafik dengan data sensor terbaru
-  void _updateChartData() async {
-    try {
-      // Mengambil data sensor dari API
-      List<SensorData> sensorDataList =
-          (await ApiService.getSensorData()).cast<SensorData>();
+  void _onDataReceived(SensorData sensorData) {
+    double sensorValue = _getSensorValue(sensorData);
 
-      // Debugging log
-      print('Sensor Data: $sensorDataList');
-
-      // Mendapatkan nilai yang sesuai berdasarkan judul layar
-      double sensorValue = _getSensorValue(sensorDataList);
-
-      // Menambahkan data ke grafik
+    if (mounted) {
       setState(() {
+        time++;
         chartData.add(_ChartData(time, sensorValue));
+
+        // Hapus data lama agar grafik tetap ringkas
         if (chartData.length > 100) {
           chartData.removeAt(0);
         }
       });
-    } catch (e) {
-      print('Error fetching sensor data: $e');
     }
   }
 
-  // Fungsi untuk mengambil nilai sensor yang sesuai dengan title
-  double _getSensorValue(List<SensorData> sensorDataList) {
-    if (sensorDataList.isNotEmpty) {
-      SensorData sensor = sensorDataList[0];
-
-      switch (widget.title) {
-        case 'Ultrasonic Distance':
-          return sensor.distance;
-        case 'Pompa Status':
-          return (sensor.pompa == 'on') ? 1.0 : 0.0;
-        case 'Strobe Status':
-          return (sensor.strobe == 'on') ? 1.0 : 0.0;
-        case 'Battery Voltage':
-          return sensor.batteryVoltage;
-        case 'Speaker Status':
-          return (sensor.speaker == 'on') ? 1.0 : 0.0;
-        default:
-          return 0.0;
-      }
+  double _getSensorValue(SensorData sensor) {
+    switch (widget.title) {
+      case 'Ultrasonic Distance':
+        return sensor.distance;
+      case 'Pompa Status':
+        return (sensor.pompa == 'on') ? 1.0 : 0.0;
+      case 'Strobe Status':
+        return (sensor.strobo == 'on') ? 1.0 : 0.0;
+      case 'Battery Voltage':
+        return sensor.batre.toDouble();
+      case 'Speaker Status':
+        return (sensor.speaker == 'on') ? 1.0 : 0.0;
+      case 'API Status':
+        return (sensor.fire == 'on') ? 1.0 : 0.0;
+      default:
+        return 0.0;
     }
-    return 0.0; // Jika data kosong atau null
   }
 
   @override
@@ -102,7 +88,6 @@ class _DetailScreenState extends State<DetailScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // Header Icon dan Judul
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -115,8 +100,6 @@ class _DetailScreenState extends State<DetailScreen> {
               ],
             ),
             SizedBox(height: 16),
-
-            // Grafik
             Text(
               'Live Chart ${widget.title}',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
@@ -158,7 +141,6 @@ class _DetailScreenState extends State<DetailScreen> {
   }
 }
 
-// Model data untuk grafik
 class _ChartData {
   _ChartData(this.x, this.y);
   final int x;

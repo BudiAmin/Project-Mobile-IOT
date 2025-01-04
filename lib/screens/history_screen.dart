@@ -15,7 +15,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   void initState() {
     super.initState();
-    _sensorDataList = ApiService.getSensorData(); // Mengambil data sensor dari API
+    _sensorDataList =
+        ApiService.getSensorData(); // Mengambil data sensor dari API
   }
 
   // Fungsi untuk menggambar grafik dengan Syncfusion
@@ -37,7 +38,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           dataSource: chartData,
           xValueMapper: (ChartData data, _) => data.x,
           yValueMapper: (ChartData data, _) => data.y,
-          name: ' Distance',
+          name: 'Distance',
           markerSettings: MarkerSettings(isVisible: true),
         ),
       ],
@@ -52,11 +53,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
         centerTitle: true,
         backgroundColor: Colors.redAccent,
         actions: [
+          // Tombol untuk menampilkan grafik tanpa berpindah halaman
           IconButton(
             icon: Icon(Icons.graphic_eq),
             onPressed: () {
               setState(() {
-                _showGraph = !_showGraph; // Toggle grafik
+                _showGraph = !_showGraph; // Toggle tampilan grafik
               });
             },
           ),
@@ -74,7 +76,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           } else {
             List<SensorData> sensorDataList = snapshot.data!;
 
-            // Jika _showGraph true, tampilkan grafik
+            // Menampilkan grafik jika _showGraph = true
             if (_showGraph) {
               return Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -90,7 +92,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 crossAxisSpacing: 16.0,
                 mainAxisSpacing: 16.0,
               ),
-              itemCount: sensorDataList.length, // Menampilkan data berdasarkan jumlah data
+              itemCount: sensorDataList
+                  .length, // Menampilkan data berdasarkan jumlah data
               itemBuilder: (context, index) {
                 var sensorData = sensorDataList[index]; // Ambil data sensor
 
@@ -106,18 +109,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         Icon(Icons.history, size: 40, color: Colors.redAccent),
                         SizedBox(height: 10),
                         Text(
-                          ': ${sensorData.distance} cm',
+                          'Distance: ${sensorData.distance} cm',
                           style: TextStyle(fontSize: 14),
                         ),
                         SizedBox(height: 8),
                         Text(
-                          'Battery: ${sensorData.batteryVoltage} V',
+                          'Battery: ${sensorData.batre} V',
                           style: TextStyle(
                               fontSize: 14, fontWeight: FontWeight.bold),
                         ),
                         SizedBox(height: 8),
                         Text(
-                          'Strobe: ${sensorData.strobe}',
+                          'Strobe: ${sensorData.strobo}',
                           style: TextStyle(fontSize: 12),
                         ),
                       ],

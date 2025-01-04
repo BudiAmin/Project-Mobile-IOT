@@ -1,13 +1,13 @@
-class User {
+class Userakun {
   final int? idUser;
   final String username;
   final String password;
 
-  User({this.idUser, required this.username, required this.password});
+  Userakun({this.idUser, required this.username, required this.password});
 
   // Metode untuk mengonversi dari JSON
-  factory User.fromJson(Map<String, dynamic> json) {
-    return User(
+  factory Userakun.fromJson(Map<String, dynamic> json) {
+    return Userakun(
       idUser: json['id_user'],
       username: json['username'],
       password: json['password'],

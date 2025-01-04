@@ -3,11 +3,11 @@ class SensorData {
   /// Jarak yang terdeteksi oleh sensor.
   final double distance;
 
-  /// Status lampu strobe.
-  final String strobe;
+  /// Status lampu strobo.
+  final String strobo;
 
   /// Tegangan baterai.
-  final double batteryVoltage;
+  final int batre;
 
   /// Status speaker.
   final String speaker;
@@ -15,23 +15,28 @@ class SensorData {
   /// Status pompa.
   final String pompa;
 
+  /// Status fire.
+  final String fire;
+
   /// Konstruktor utama dengan parameter wajib.
   SensorData({
     required this.distance,
-    required this.strobe,
-    required this.batteryVoltage,
+    required this.strobo,
+    required this.batre,
     required this.speaker,
     required this.pompa,
+    required this.fire,
   });
 
   /// Factory constructor untuk parsing dari JSON.
   factory SensorData.fromJson(Map<String, dynamic> json) {
     return SensorData(
       distance: (json['distance'] as num?)?.toDouble() ?? 0.0,
-      strobe: json['strobe']?.toString() ?? 'OFF',
-      batteryVoltage: (json['battery_voltage'] as num?)?.toDouble() ?? 0.0,
+      strobo: json['strobo']?.toString() ?? 'OFF',
+      batre: (json['batre'] as num?)?.toInt() ?? 0,
       speaker: json['speaker']?.toString() ?? 'OFF',
       pompa: json['pompa']?.toString() ?? 'OFF',
+      fire: json['fire']?.toString() ?? 'UNKNOWN',
     );
   }
 
@@ -39,10 +44,11 @@ class SensorData {
   Map<String, dynamic> toJson() {
     return {
       'distance': distance,
-      'strobe': strobe,
-      'battery_voltage': batteryVoltage,
+      'strobo': strobo,
+      'batre': batre,
       'speaker': speaker,
       'pompa': pompa,
+      'fire': fire,
     };
   }
 }

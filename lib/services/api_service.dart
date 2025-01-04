@@ -5,7 +5,7 @@ import 'package:aplikasi_iot/models/sensor_model.dart'; // Import model untuk da
 
 class ApiService {
   static const String baseUrl =
-      "https://dd59-2001-448a-3021-6e94-440-359d-2c6d-3f06.ngrok-free.app"; // Sesuaikan dengan URL backend Anda
+      "https://e8a1-2001-448a-3021-6038-8c1e-6595-5b23-bd64.ngrok-free.app"; // Sesuaikan dengan URL backend Anda
 
   // Login API
   static Future<bool> login(String username, String password) async {
