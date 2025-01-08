@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'themes/theme_model.dart';
-import 'themes/app_theme.dart'; // Tambahkan untuk import tema yang telah Anda buat
+import 'themes/app_theme.dart'; // Import tema yang telah Anda buat
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/home_screen.dart'; // Import HomeScreen
-// import 'screens/splash_screen.dart'; // Import SplashScreen
+import 'screens/splash_screen.dart'; // Import SplashScreen
 
 void main() {
+  // Menonaktifkan semua output debug
+  debugPrint =
+      (String? message, {int? wrapWidth}) {}; // Menonaktifkan log debug
+
+  // Menonaktifkan debug banner
   runApp(MyApp());
 }
 
@@ -19,13 +24,14 @@ class MyApp extends StatelessWidget {
       child: Consumer<ThemeModel>(
         builder: (context, themeModel, child) {
           return MaterialApp(
+            debugShowCheckedModeBanner: false, // Menonaktifkan debug banner
             title: 'Aplikasi IoT',
             theme: AppTheme.light, // Tema terang
             darkTheme: AppTheme.dark, // Tema gelap
             themeMode: themeModel.isDark
                 ? ThemeMode.dark
                 : ThemeMode.light, // Menggunakan tema sesuai pilihan
-            home: HomeScreen(), // Mulai dari halaman SplashScreen
+            home: SplashScreen(), // Mulai dari halaman SplashScreen
             routes: {
               '/login_screen': (context) => LoginScreen(),
               '/register_screen': (context) => RegisterScreen(),

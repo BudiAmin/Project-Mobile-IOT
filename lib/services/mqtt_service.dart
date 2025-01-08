@@ -7,7 +7,7 @@ class MqttService {
   late mqtt.MqttServerClient client;
   final String broker = 'broker.hivemq.com'; // Broker MQTT
   final int port = 1883; // Port koneksi MQTT tanpa TLS
-  final String topic = 'mobil/ff'; // Topik MQTT
+  final String topic = 'motorffitenass/sensor'; // Topik MQTT
   final String clientId = 'Mobil_${DateTime.now().millisecondsSinceEpoch}';
   final Function(SensorData) onDataReceived;
 

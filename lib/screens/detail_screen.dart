@@ -8,7 +8,6 @@ class DetailScreen extends StatefulWidget {
   final IconData icon;
   final String value;
 
-  // Konstruktor
   DetailScreen({
     required this.title,
     required this.icon,
@@ -28,10 +27,10 @@ class _DetailScreenState extends State<DetailScreen> {
   void initState() {
     super.initState();
 
-    // Inisialisasi data grafik
+    // Initialize chart data
     chartData = [for (int i = 0; i < 10; i++) _ChartData(i, 0.0)];
 
-    // Inisialisasi MQTT
+    // Initialize MQTT service
     mqttService = MqttService(onDataReceived: _onDataReceived);
     mqttService.connect();
   }
@@ -50,7 +49,7 @@ class _DetailScreenState extends State<DetailScreen> {
         time++;
         chartData.add(_ChartData(time, sensorValue));
 
-        // Hapus data lama agar grafik tetap ringkas
+        // Remove old data to keep chart concise
         if (chartData.length > 100) {
           chartData.removeAt(0);
         }
@@ -88,49 +87,81 @@ class _DetailScreenState extends State<DetailScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(widget.icon, size: 50, color: Colors.redAccent),
-                SizedBox(width: 10),
-                Text(
-                  widget.title,
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            SizedBox(height: 16),
-            Text(
-              'Live Chart ${widget.title}',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 16),
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.black26),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: SfCartesianChart(
-                  primaryXAxis:
-                      NumericAxis(title: AxisTitle(text: 'Waktu (detik)')),
-                  primaryYAxis: NumericAxis(
-                      title: AxisTitle(
-                          text: widget.title == 'Battery Voltage'
-                              ? 'Kapasitas Baterai (%)'
-                              : 'Nilai')),
-                  title: ChartTitle(text: 'Grafik ${widget.title}'),
-                  legend: Legend(isVisible: false),
-                  tooltipBehavior: TooltipBehavior(enable: true),
-                  series: <LineSeries<_ChartData, int>>[
-                    LineSeries<_ChartData, int>(
-                      dataSource: chartData,
-                      xValueMapper: (_ChartData data, _) => data.x,
-                      yValueMapper: (_ChartData data, _) => data.y,
-                      color: Colors.redAccent,
-                      markerSettings: MarkerSettings(isVisible: true),
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  children: [
+                    Icon(widget.icon, size: 60, color: Colors.redAccent),
+                    SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.title,
+                            style: TextStyle(
+                                fontSize: 20, fontWeight: FontWeight.bold),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Current Value: ${widget.value}',
+                            style:
+                                TextStyle(fontSize: 16, color: Colors.black54),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
+                ),
+              ),
+            ),
+            SizedBox(height: 20),
+            Expanded(
+              child: Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      Text(
+                        'Live Chart ${widget.title}',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 16),
+                      Expanded(
+                        child: SfCartesianChart(
+                          primaryXAxis: NumericAxis(
+                              title: AxisTitle(text: 'Time (seconds)')),
+                          primaryYAxis: NumericAxis(
+                              title: AxisTitle(
+                                  text: widget.title == 'Battery Voltage'
+                                      ? 'Battery Capacity (%)'
+                                      : 'Value')),
+                          title: ChartTitle(text: 'Graph of ${widget.title}'),
+                          legend: Legend(isVisible: false),
+                          tooltipBehavior: TooltipBehavior(enable: true),
+                          series: <LineSeries<_ChartData, int>>[
+                            LineSeries<_ChartData, int>(
+                              dataSource: chartData,
+                              xValueMapper: (_ChartData data, _) => data.x,
+                              yValueMapper: (_ChartData data, _) => data.y,
+                              color: Colors.redAccent,
+                              markerSettings: MarkerSettings(isVisible: true),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

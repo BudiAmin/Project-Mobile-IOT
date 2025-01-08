@@ -19,9 +19,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
         ApiService.getSensorData(); // Mengambil data sensor dari API
   }
 
-  // Fungsi untuk menggambar grafik dengan Syncfusion
+  // Fungsi untuk menggambar grafik dengan 2 garis (distance dan batre)
   SfCartesianChart _buildChart(List<SensorData> data) {
-    List<ChartData> chartData = List<ChartData>.generate(
+    List<ChartData> distanceData = List<ChartData>.generate(
       data.length,
       (index) => ChartData(
         x: index.toDouble(),
@@ -29,16 +29,34 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ),
     );
 
+    List<ChartData> batteryData = List<ChartData>.generate(
+      data.length,
+      (index) => ChartData(
+        x: index.toDouble(),
+        y: data[index].batre.toDouble(),
+      ),
+    );
+
     return SfCartesianChart(
       title: ChartTitle(text: 'Sensor Data History'),
+      legend: Legend(isVisible: true), // Menampilkan legend
       primaryXAxis: NumericAxis(title: AxisTitle(text: 'Index')),
       primaryYAxis: NumericAxis(title: AxisTitle(text: 'Value')),
       series: <ChartSeries<ChartData, double>>[
+        // Garis untuk distance
         LineSeries<ChartData, double>(
-          dataSource: chartData,
+          dataSource: distanceData,
           xValueMapper: (ChartData data, _) => data.x,
           yValueMapper: (ChartData data, _) => data.y,
-          name: 'Distance',
+          name: 'Distance (cm)', // Nama legend
+          markerSettings: MarkerSettings(isVisible: true),
+        ),
+        // Garis untuk batre
+        LineSeries<ChartData, double>(
+          dataSource: batteryData,
+          xValueMapper: (ChartData data, _) => data.x,
+          yValueMapper: (ChartData data, _) => data.y,
+          name: 'Battery (V)', // Nama legend
           markerSettings: MarkerSettings(isVisible: true),
         ),
       ],
@@ -92,8 +110,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 crossAxisSpacing: 16.0,
                 mainAxisSpacing: 16.0,
               ),
-              itemCount: sensorDataList
-                  .length, // Menampilkan data berdasarkan jumlah data
+              itemCount: sensorDataList.length,
               itemBuilder: (context, index) {
                 var sensorData = sensorDataList[index]; // Ambil data sensor
 

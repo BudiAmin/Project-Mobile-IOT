@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
-import 'package:camera/camera.dart';
-import 'package:video_player/video_player.dart';
 import '../themes/theme_model.dart';
 import '../services/mqtt_service.dart';
 import '../models/sensor_model.dart';
 import 'detail_screen.dart';
 import 'history_screen.dart';
 import 'team_screen.dart';
+import '../services/api_service.dart';
+import '../models/fire_model.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -17,13 +16,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  bool _isCameraOn = false;
-  late CameraController _cameraController;
-  late List<CameraDescription> _cameras;
-  late CameraDescription _selectedCamera;
-  late VideoPlayerController _ipCameraController;
-  bool _isIpCameraOn = false;
-
   SensorData _sensorData = SensorData(
     distance: 0.0,
     strobo: 'Off',
@@ -34,9 +26,12 @@ class _HomeScreenState extends State<HomeScreen> {
   );
 
   late MqttService mqttService;
-
   int _selectedIndex = 0;
   late PageController _pageController;
+
+  String _fireImageUrl = ''; // URL gambar kebakaran
+  List<FireImage> _fireImages = [];
+  bool _isImageSelected = false; // Flag apakah gambar telah dipilih
 
   @override
   void initState() {
@@ -52,153 +47,162 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     mqttService.connect();
-    _requestCameraPermission();
-    _initializeCameras();
+    _loadFireImages(); // Ambil gambar kebakaran dari API
 
     _pageController = PageController(initialPage: _selectedIndex);
   }
 
   @override
   void dispose() {
-    if (_isCameraOn) _cameraController.dispose();
-    if (_isIpCameraOn) _ipCameraController.dispose();
     _pageController.dispose();
     mqttService.disconnect(); // Disconnect MQTT service properly
     super.dispose();
   }
 
-  Future<void> _requestCameraPermission() async {
-    PermissionStatus cameraStatus = await Permission.camera.status;
-
-    if (!cameraStatus.isGranted) {
-      PermissionStatus status = await Permission.camera.request();
-      if (!status.isGranted && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Camera permission is required!',
-              style: TextStyle(color: Colors.white),
-            ),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _initializeCameras() async {
+  Future<void> _loadFireImages() async {
     try {
-      _cameras = await availableCameras();
-      if (_cameras.isNotEmpty) {
-        _selectedCamera = _cameras.first;
-      }
-    } catch (e) {
-      if (mounted) {
-        print('Failed to get available cameras: $e');
-      }
-    }
-  }
-
-  Future<void> _startCamera(CameraDescription cameraDescription) async {
-    _cameraController = CameraController(
-      cameraDescription,
-      ResolutionPreset.medium,
-    );
-
-    try {
-      await _cameraController.initialize();
+      List<FireImage> fireImages = await ApiService.getFireImages();
       if (mounted) {
         setState(() {
-          _isCameraOn = true;
+          _fireImages = fireImages;
         });
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Failed to initialize camera: $e',
-              style: TextStyle(color: Colors.white),
-            ),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _startIpCamera(String url) async {
-    _ipCameraController = VideoPlayerController.network(url)
-      ..initialize().then((_) {
-        if (mounted) {
-          setState(() {
-            _isIpCameraOn = true;
-            _ipCameraController.play();
-          });
-        }
-      }).catchError((e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Failed to load IP Camera: $e',
-                style: TextStyle(color: Colors.white),
-              ),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
-        }
-      });
-  }
-
-  Future<void> _startUsbCamera() async {
-    // Add your USB camera initialization code here
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'USB Camera feature is not implemented yet.',
-            style: TextStyle(color: Colors.white),
-          ),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
-    }
-  }
-
-  void _toggleCamera() async {
-    if (_isCameraOn) {
-      setState(() {
-        _isCameraOn = false;
-      });
-      await _cameraController.dispose();
-    } else {
-      await _startCamera(_selectedCamera);
+      print("Error loading fire images: $e");
     }
   }
 
   Widget _buildCameraWidget() {
-    return Container(
-      height: 200,
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.redAccent, width: 2),
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: _isCameraOn
-          ? CameraPreview(_cameraController)
-          : _isIpCameraOn
-              ? VideoPlayer(_ipCameraController)
-              : Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.camera_alt, size: 50, color: Colors.redAccent),
-                    SizedBox(width: 10),
-                    Text(
-                      '[Camera OFF]',
-                      style: TextStyle(fontSize: 22, color: Colors.redAccent),
+    return GestureDetector(
+      onTap: _showImageSelectionDialog,
+      child: Container(
+        height: 250, // Tinggi gambar
+        width: double.infinity, // Lebar penuh layar
+        decoration: BoxDecoration(
+          color: Colors.white, // Latar belakang container
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.redAccent, // Warna pada keempat sisi
+              blurRadius: 6.0, // Efek blur pada warna
+              spreadRadius: 2.0, // Lebar warna di sekitar container
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(15), // Untuk menjaga sudut gambar
+          child: Stack(
+            children: [
+              // Jika gambar telah dipilih, tampilkan gambar
+              _isImageSelected && _fireImageUrl.isNotEmpty
+                  ? Image.network(
+                      _fireImageUrl,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: double.infinity,
+                    )
+                  // Jika belum dipilih, tampilkan placeholder
+                  : Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.image, size: 60, color: Colors.redAccent),
+                          SizedBox(height: 10),
+                          Text(
+                            'Tap to Select Image',
+                            style: TextStyle(
+                                fontSize: 22, color: Colors.redAccent),
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
+              // Tombol close untuk menghapus gambar
+              if (_isImageSelected && _fireImageUrl.isNotEmpty)
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _fireImageUrl = ''; // Hapus URL gambar
+                        _isImageSelected = false; // Reset flag gambar
+                      });
+                    },
+                    child: CircleAvatar(
+                      radius: 15,
+                      backgroundColor: Colors.redAccent,
+                      child: Icon(
+                        Icons.close,
+                        size: 18,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
                 ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showImageSelectionDialog() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.5,
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text(
+                  'Select Fire Image',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.redAccent,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: _fireImages.length,
+                  itemBuilder: (context, index) {
+                    return ListTile(
+                      leading: Image.network(
+                        _fireImages[index].fireImageUrl,
+                        width: 50,
+                        height: 50,
+                        fit: BoxFit.cover,
+                      ),
+                      title: Text(
+                        'Image ${index + 1}',
+                        style: TextStyle(
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                        ),
+                      ),
+                      onTap: () {
+                        setState(() {
+                          _fireImageUrl = _fireImages[index].fireImageUrl;
+                          _isImageSelected =
+                              true; // Tandai bahwa gambar telah dipilih
+                        });
+                        Navigator.pop(context);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -236,52 +240,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   Navigator.of(context).pushReplacementNamed('/login_screen');
                 },
               ),
-              actions: [
-                PopupMenuButton<String>(
-                  onSelected: (String choice) async {
-                    if (choice == 'Front Camera') {
-                      final frontCamera = _cameras.firstWhere(
-                        (camera) =>
-                            camera.lensDirection == CameraLensDirection.front,
-                        orElse: () => _cameras.first,
-                      );
-                      await _startCamera(frontCamera);
-                    } else if (choice == 'Rear Camera') {
-                      final rearCamera = _cameras.firstWhere(
-                        (camera) =>
-                            camera.lensDirection == CameraLensDirection.back,
-                        orElse: () => _cameras.first,
-                      );
-                      await _startCamera(rearCamera);
-                    } else if (choice == 'IP Camera') {
-                      await _startIpCamera('http://192.168.1.100:8080/video');
-                    } else if (choice == 'USB Camera') {
-                      await _startUsbCamera();
-                    }
-                  },
-                  itemBuilder: (context) {
-                    return [
-                      PopupMenuItem(
-                        value: 'Front Camera',
-                        child: Text('Front Camera'),
-                      ),
-                      PopupMenuItem(
-                        value: 'Rear Camera',
-                        child: Text('Back Camera'),
-                      ),
-                      PopupMenuItem(
-                        value: 'IP Camera',
-                        child: Text('IP Camera'),
-                      ),
-                      PopupMenuItem(
-                        value: 'USB Camera',
-                        child: Text('USB Camera'),
-                      ),
-                    ];
-                  },
-                  icon: Icon(Icons.switch_camera, color: Colors.white),
-                ),
-              ],
             )
           : null,
       body: PageView(
@@ -296,25 +254,7 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
-                GestureDetector(
-                  onTap: _toggleCamera,
-                  child: Container(
-                    height: 200,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(15),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black26,
-                          blurRadius: 8,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: _buildCameraWidget(),
-                  ),
-                ),
+                _buildCameraWidget(),
                 SizedBox(height: 16),
                 Wrap(
                   spacing: 16.0,
@@ -361,8 +301,8 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-          HistoryScreen(), // Assuming this is a static screen
-          TeamScreen(), // Assuming this is a static screen
+          HistoryScreen(),
+          TeamScreen(),
         ],
       ),
       floatingActionButton: FloatingActionButton(

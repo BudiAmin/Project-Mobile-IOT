@@ -33,7 +33,8 @@ class SensorData {
     return SensorData(
       distance: (json['distance'] as num?)?.toDouble() ?? 0.0,
       strobo: json['strobo']?.toString() ?? 'OFF',
-      batre: (json['batre'] as num?)?.toInt() ?? 0,
+      batre: int.tryParse(json['batre']?.toString() ?? '0') ??
+          0, // Perbaikan di sini
       speaker: json['speaker']?.toString() ?? 'OFF',
       pompa: json['pompa']?.toString() ?? 'OFF',
       fire: json['fire']?.toString() ?? 'UNKNOWN',
