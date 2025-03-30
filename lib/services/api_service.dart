@@ -5,7 +5,7 @@ import 'package:aplikasi_iot/models/sensor_model.dart';
 
 class ApiService {
   static const String baseUrl =
-      "https://078b-103-104-130-40.ngrok-free.app"; // URL backend
+      "https://93e6-103-104-130-40.ngrok-free.app/"; // URL backend
 
   // Variabel untuk menyimpan token
   static String? _token;

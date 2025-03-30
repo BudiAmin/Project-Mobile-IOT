@@ -3,14 +3,14 @@ import 'package:flutter/material.dart';
 class TeamScreen extends StatelessWidget {
   // Data untuk anggota tim
   final List<Map<String, String>> teamMembers = [
-    {'name': 'Rievan Averillio', 'nrp': '152022024', 'jobdesk': 'Developer'},
-    {'name': 'Afin Maulana', 'nrp': '152022051', 'jobdesk': 'Mekatronika'},
+    {'name': 'Rievan Averillio', 'nrp': '152022024', 'jobdesk': 'AI Enginner'},
+    {'name': 'Afin Maulana', 'nrp': '152022051', 'jobdesk': 'Program'},
     {
       'name': 'Rikki Subagja',
       'nrp': '152022055',
       'jobdesk': 'Desktop Developer'
     },
-    {'name': 'Maulana Seno', 'nrp': '152022065', 'jobdesk': 'Produk'},
+    {'name': 'Maulana Seno', 'nrp': '152022065', 'jobdesk': 'Mekatronika'},
     {
       'name': 'Muhammad Aulia',
       'nrp': '152022076',
